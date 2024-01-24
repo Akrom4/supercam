@@ -151,7 +151,13 @@ class PhotoListScreenState extends State<PhotoListScreen> {
   @override
   void initState() {
     super.initState();
-    _photoListFuture = _getPhotoList();
+    _refreshPhotoList();
+  }
+
+  void _refreshPhotoList() {
+    setState(() {
+      _photoListFuture = _getPhotoList();
+    });
   }
 
   Future<List<String>> _getPhotoList() async {
@@ -195,7 +201,7 @@ class PhotoListScreenState extends State<PhotoListScreen> {
                           builder: (context) =>
                               FullPhotoScreen(imagePath: filePath),
                         ),
-                      );
+                      ).then((_) => _refreshPhotoList());
                     },
                   );
                 },
@@ -346,12 +352,31 @@ class FullPhotoScreen extends StatelessWidget {
 
   const FullPhotoScreen({Key? key, required this.imagePath}) : super(key: key);
 
+  Future<void> _deletePhoto(BuildContext context) async {
+    try {
+      final file = File(imagePath);
+      if (await file.exists()) {
+        await file.delete();
+        Navigator.of(context).pop(); // Go back to the previous screen
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting photo: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Full Photo')),
       body: Center(
         child: Image.file(File(imagePath)),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _deletePhoto(context),
+        tooltip: 'Delete Photo',
+        child: const Icon(Icons.delete),
       ),
     );
   }
